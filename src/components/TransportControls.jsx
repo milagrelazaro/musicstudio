@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Square, RotateCcw, Repeat, Plus } from 'lucide-react';
 import useMusicStudioStore from '../store/useMusicStudioStore.js';
+import audioCapture from '../services/audioCapture.js';
 
 const TransportControls = () => {
   const {
@@ -17,8 +18,14 @@ const TransportControls = () => {
     setPaused,
     setCurrentTime,
     setLoopEnabled,
-    setBpm
+    setBpm,
+    addTrack,
+    addClip
   } = useMusicStudioStore();
+  
+  const [recordingStartTime, setRecordingStartTime] = useState(null);
+  const [recordingInterval, setRecordingInterval] = useState(null);
+  const audioCaptureRef = useRef(null);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -33,15 +40,78 @@ const TransportControls = () => {
   };
 
   const handleStop = () => {
+    if (recordingInterval) {
+      clearInterval(recordingInterval);
+      setRecordingInterval(null);
+    }
+    
+    if (isRecording && audioCaptureRef.current) {
+      audioCapture.stopRecording('track-1');
+    }
+    
     setPlaying(false);
     setRecording(false);
     setPaused(false);
     setCurrentTime(0);
+    setRecordingStartTime(null);
   };
 
-  const handleRecord = () => {
+  const handleRecord = async () => {
     if (isPlaying) return;
-    setRecording(!isRecording);
+    
+    if (!isRecording) {
+      // Start recording
+      try {
+        // Initialize audio capture if not already
+        if (!audioCaptureRef.current) {
+          audioCaptureRef.current = audioCapture;
+          await audioCapture.initialize();
+        }
+        
+        // Set up callback to create clip when recording stops
+        audioCaptureRef.current.onStop = (blob, trackId) => {
+          const recordingDuration = currentTime - recordingStartTime;
+          
+          // Create clip from recording
+          addClip(trackId, {
+            id: `clip-${Date.now()}`,
+            name: 'Recording',
+            startTime: recordingStartTime,
+            duration: recordingDuration,
+            audioBlob: blob,
+            midiNotes: []
+          });
+        };
+        
+        // Start recording on armed tracks
+        const trackId = 'track-1'; // TODO: Get armed track
+        await audioCapture.startRecording(trackId);
+        
+        setRecordingStartTime(currentTime);
+        setRecording(true);
+        
+        // Update playhead during recording
+        const interval = setInterval(() => {
+          setCurrentTime(prev => prev + 0.1);
+        }, 100);
+        setRecordingInterval(interval);
+        
+        setPlaying(true);
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+      }
+    } else {
+      // Stop recording
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+        setRecordingInterval(null);
+      }
+      
+      audioCapture.stopRecording('track-1');
+      setRecording(false);
+      setPlaying(false);
+      setRecordingStartTime(null);
+    }
   };
 
   const handleLoopToggle = () => {

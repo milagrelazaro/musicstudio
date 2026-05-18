@@ -121,6 +121,20 @@ const useMusicStudioStore = create(
         }));
       },
 
+      addClip: (trackId, clip) => {
+        set(state => ({
+          tracks: state.tracks.map(track => {
+            if (track.id === trackId) {
+              return {
+                ...track,
+                clips: [...(track.clips || []), clip]
+              };
+            }
+            return track;
+          })
+        }));
+      },
+
       // Actions - Automation
       addAutomationPoint: (trackId, parameter, point) => {
         set(state => ({
