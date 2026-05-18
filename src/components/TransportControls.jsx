@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Square, RotateCcw, Repeat, Plus } from 'lucide-react';
 import useMusicStudioStore from '../store/useMusicStudioStore.js';
-import audioCapture from '../services/audioCapture.js';
+import AudioCaptureService from '../services/audioCapture.js';
 
 const TransportControls = () => {
   const {
@@ -46,7 +46,7 @@ const TransportControls = () => {
     }
     
     if (isRecording && audioCaptureRef.current) {
-      audioCapture.stopRecording('track-1');
+      audioCaptureRef.current.stopRecording('track-1');
     }
     
     setPlaying(false);
@@ -64,8 +64,8 @@ const TransportControls = () => {
       try {
         // Initialize audio capture if not already
         if (!audioCaptureRef.current) {
-          audioCaptureRef.current = audioCapture;
-          await audioCapture.initialize();
+          audioCaptureRef.current = new AudioCaptureService();
+          await audioCaptureRef.current.initialize();
         }
         
         // Set up callback to create clip when recording stops
@@ -85,7 +85,7 @@ const TransportControls = () => {
         
         // Start recording on armed tracks
         const trackId = 'track-1'; // TODO: Get armed track
-        await audioCapture.startRecording(trackId);
+        await audioCaptureRef.current.startRecording(trackId);
         
         setRecordingStartTime(currentTime);
         setRecording(true);
@@ -107,7 +107,7 @@ const TransportControls = () => {
         setRecordingInterval(null);
       }
       
-      audioCapture.stopRecording('track-1');
+      audioCaptureRef.current.stopRecording('track-1');
       setRecording(false);
       setPlaying(false);
       setRecordingStartTime(null);
