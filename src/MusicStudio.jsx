@@ -12,7 +12,7 @@ import PianoRoll from './components/PianoRoll.jsx';
 import useMusicStudioStore from './store/useMusicStudioStore.js';
 
 const MusicStudio = () => {
-  const { cleanup, undo, redo, canUndo, canRedo, tracks } = useMusicStudioStore();
+  const { cleanup, undo, redo, canUndo, canRedo, tracks, addMidiNote, removeMidiNote, updateMidiNote } = useMusicStudioStore();
   const [activeTab, setActiveTab] = useState('timeline'); // timeline, mixer, piano
   const [selectedTrackId, setSelectedTrackId] = useState(null);
   const [selectedClipId, setSelectedClipId] = useState(null);
@@ -182,13 +182,19 @@ const MusicStudio = () => {
               <PianoRoll
                 clip={getSelectedClip()}
                 onNoteAdd={(note) => {
-                  // Use store action to add note
+                  if (selectedTrackId && selectedClipId) {
+                    addMidiNote(selectedTrackId, selectedClipId, note);
+                  }
                 }}
                 onNoteRemove={(noteId) => {
-                  // Use store action to remove note
+                  if (selectedTrackId && selectedClipId) {
+                    removeMidiNote(selectedTrackId, selectedClipId, noteId);
+                  }
                 }}
                 onNoteUpdate={(noteId, updates) => {
-                  // Use store action to update note
+                  if (selectedTrackId && selectedClipId) {
+                    updateMidiNote(selectedTrackId, selectedClipId, noteId, updates);
+                  }
                 }}
               />
             )}
