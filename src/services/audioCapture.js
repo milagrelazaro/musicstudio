@@ -14,6 +14,15 @@ class AudioCaptureService {
     this.onStop = null;
     this.onDurationUpdate = null;
     this.durationInterval = null;
+    
+    // Multi-track support
+    this.streams = new Map();
+    this.analysers = new Map();
+    this.recorders = new Map();
+    this.trackChunks = new Map();
+    this.dataArray = null;
+    this.timerInterval = null;
+    this.onError = null;
   }
 
   async initialize() {
