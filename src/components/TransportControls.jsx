@@ -28,6 +28,9 @@ const TransportControls = () => {
   const audioCaptureRef = useRef(null);
 
   const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds === null || seconds === undefined) {
+      return '00:00:00';
+    }
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     const ms = Math.floor((seconds % 1) * 100);
@@ -68,12 +71,40 @@ const TransportControls = () => {
           await audioCaptureRef.current.initialize();
         }
         
+        // Get or create a track for recording
+        let trackId = 'track-1';
+        const existingTrack = tracks.find(t => t.armed);
+        
+        if (existingTrack) {
+          trackId = existingTrack.id;
+        } else if (tracks.length === 0) {
+          // Create a new track if none exists
+          const newTrack = {
+            id: 'track-1',
+            name: 'Track 1',
+            type: 'audio',
+            color: '#3B82F6',
+            volume: 0.8,
+            pan: 0,
+            muted: false,
+            solo: false,
+            armed: true,
+            clips: [],
+            effects: {
+              eq: { low: 0, mid: 0, high: 0 },
+              compressor: { threshold: -20, ratio: 4, attack: 0.003, release: 0.25 }
+            },
+            automation: {}
+          };
+          addTrack(newTrack);
+        }
+        
         // Set up callback to create clip when recording stops
-        audioCaptureRef.current.onStop = (blob, trackId) => {
+        audioCaptureRef.current.onStop = (blob, recordedTrackId) => {
           const recordingDuration = currentTime - recordingStartTime;
           
           // Create clip from recording
-          addClip(trackId, {
+          addClip(recordedTrackId, {
             id: `clip-${Date.now()}`,
             name: 'Recording',
             startTime: recordingStartTime,
@@ -83,8 +114,7 @@ const TransportControls = () => {
           });
         };
         
-        // Start recording on armed tracks
-        const trackId = 'track-1'; // TODO: Get armed track
+        // Start recording
         await audioCaptureRef.current.startRecording(trackId);
         
         setRecordingStartTime(currentTime);
@@ -92,13 +122,17 @@ const TransportControls = () => {
         
         // Update playhead during recording
         const interval = setInterval(() => {
-          setCurrentTime(prev => prev + 0.1);
+          setCurrentTime(prev => {
+            const newTime = prev + 0.1;
+            return isNaN(newTime) ? 0 : newTime;
+          });
         }, 100);
         setRecordingInterval(interval);
         
         setPlaying(true);
       } catch (error) {
         console.error('Failed to start recording:', error);
+        alert('Failed to start recording: ' + error.message);
       }
     } else {
       // Stop recording
@@ -107,7 +141,8 @@ const TransportControls = () => {
         setRecordingInterval(null);
       }
       
-      audioCaptureRef.current.stopRecording('track-1');
+      const trackId = tracks.find(t => t.armed)?.id || 'track-1';
+      audioCaptureRef.current.stopRecording(trackId);
       setRecording(false);
       setPlaying(false);
       setRecordingStartTime(null);
