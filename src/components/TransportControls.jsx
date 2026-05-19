@@ -20,7 +20,8 @@ const TransportControls = () => {
     setLoopEnabled,
     setBpm,
     addTrack,
-    addClip
+    addClip,
+    tracks
   } = useMusicStudioStore();
   
   const [recordingStartTime, setRecordingStartTime] = useState(null);
